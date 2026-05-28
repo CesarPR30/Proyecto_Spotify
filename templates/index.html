@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/174/174872.png" />
+  <title>Análisis Multidimensional de Spotify</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="{{ url_for('static', filename='js/d3.v7.min.js') }}"></script>
+  <script>
+    // Fallback to CDN only if the local bundle failed to load.
+    if (typeof d3 === "undefined") {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+  <div id="loader">
+    <div class="loader-inner">
+      <div class="spinner-ring"></div>
+      <p>Proyectando 8 dimensiones de audio…</p>
+    </div>
+  </div>
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="masthead">
+    <div class="mast-left">
+      <h1 class="h1-logo">
+        <svg role="img" viewBox="-1 -1 27 26" class="spotify-logo-icon" aria-label="Spotify" aria-hidden="true" height="54"><path d="M13.427.01C6.805-.253 1.224 4.902.961 11.524.698 18.147 5.853 23.728 12.476 23.99c6.622.263 12.203-4.892 12.466-11.514S20.049.272 13.427.01m5.066 17.579a.717.717 0 0 1-.977.268 14.4 14.4 0 0 0-5.138-1.747 14.4 14.4 0 0 0-5.42.263.717.717 0 0 1-.338-1.392c1.95-.474 3.955-.571 5.958-.29 2.003.282 3.903.928 5.647 1.92a.717.717 0 0 1 .268.978m1.577-3.15a.93.93 0 0 1-1.262.376 17.7 17.7 0 0 0-5.972-1.96 17.7 17.7 0 0 0-6.281.238.93.93 0 0 1-1.11-.71.93.93 0 0 1 .71-1.11 19.5 19.5 0 0 1 6.94-.262 19.5 19.5 0 0 1 6.599 2.165c.452.245.62.81.376 1.263m1.748-3.551a1.147 1.147 0 0 1-1.546.488 21.4 21.4 0 0 0-6.918-2.208 21.4 21.4 0 0 0-7.259.215 1.146 1.146 0 0 1-.456-2.246 23.7 23.7 0 0 1 8.034-.24 23.7 23.7 0 0 1 7.657 2.445c.561.292.78.984.488 1.546"/></svg>
+        Spotify <span class="ital">Dimensions</span>
+      </h1>
+      <p class="sub">Un estudio multidimensional de <strong id="trackCount">—</strong> canciones de Spotify (1921–2020)</p>
+    </div>
+  </header>
+
+  <!-- ===================== TASKS ===================== 
+  <section class="tasks">
+    <div class="task-card" data-task="1">
+      <div class="task-num">Task 01</div>
+      <h3>Do tracks cluster by audio character?</h3>
+      <p>Use RadViz &amp; the projection scatter to find natural groupings of songs in the 8-dimensional audio space.</p>
+    </div>
+    <div class="task-card" data-task="2">
+      <div class="task-num">Task 02</div>
+      <h3>How has music drifted across decades?</h3>
+      <p>Read Parallel &amp; Star Coordinates colored by decade to trace the rise of energy &amp; the decline of acousticness.</p>
+    </div>
+    <div class="task-card" data-task="3">
+      <div class="task-num">Task 03</div>
+      <h3>What separates popular from obscure?</h3>
+      <p>Switch the color encoding to popularity and brush every view to isolate the audio signature of hits.</p>
+    </div>
+  </section>
+-->
+    <!-- ===================== COLOR ENCODING ===================== -->
+  <div class="colorbar">
+    <div class="legend-block">
+      <div class="legend-title">Codificación de color</div>
+      <div class="seg" id="colorMode">
+        <button data-mode="decade" class="active">Década</button>
+        <button data-mode="popularity">Popularidad</button>
+        <button data-mode="collab">Solo / Colab</button>
+      </div>
+      <div id="legendSwatches" class="swatches"></div>
+    </div>
+  </div>
+  
+  <!-- ===================== GLOBAL FILTER BAR ===================== -->
+  <section class="filterbar">
+    <div class="fb-group">
+      <label>Artista</label>
+      <div class="artist-search">
+        <span class="mag" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="18"
+            height="18"
+          >
+            <path d="M10.533 1.27893C5.35215 1.27893 1.12598 5.41887 1.12598 10.5579C1.12598 15.697 5.35215 19.8369 10.533 19.8369C12.767 19.8369 14.8235 19.0671 16.4402 17.7794L20.7929 22.132C21.1834 22.5226 21.8166 22.5226 22.2071 22.132C22.5976 21.7415 22.5976 21.1083 22.2071 20.7178L17.8634 16.3741C19.1616 14.7849 19.94 12.7634 19.94 10.5579C19.94 5.41887 15.7138 1.27893 10.533 1.27893ZM3.12598 10.5579C3.12598 6.55226 6.42768 3.27893 10.533 3.27893C14.6383 3.27893 17.94 6.55226 17.94 10.5579C17.94 14.5636 14.6383 17.8369 10.533 17.8369C6.42768 17.8369 3.12598 14.5636 3.12598 10.5579Z"></path>
+          </svg>
+        </span>
+        <input type="text" id="artistInput" placeholder="Busca un artista…" autocomplete="off" />
+        <div id="artistDropdown" class="artist-dropdown"></div>
+      </div>
+      <div id="artistActive" class="artist-tags-row"></div>
+    </div>
+    <div class="fb-group">
+      <label>Filtro por década</label>
+      <div id="decadeFilter" class="chips"></div>
+    </div>
+    <div class="fb-group">
+      <label>Tipo</label>
+      <div id="collabFilter" class="chips">
+        <div class="chip collab-chip on" data-collab="all">Todos</div>
+        <div class="chip collab-chip" data-collab="solo">Solo</div>
+        <div class="chip collab-chip" data-collab="collab">Colab</div>
+      </div>
+    </div>
+    <div class="fb-group">
+      <label>Popularidad <span id="popMinVal">0</span> – <span id="popMaxVal">100</span></label>
+      <div class="pop-range">
+        <div class="pop-track-bg"></div>
+        <div class="pop-track-fill" id="popTrackFill"></div>
+        <input type="range" id="popMinSlider" min="0" max="100" value="0" />
+        <input type="range" id="popMaxSlider" min="0" max="100" value="100" />
+      </div>
+    </div>
+    <div class="fb-group">
+      <label>Selección</label>
+      <div class="sel-info"><span id="selCount">{{ '' }}</span> canciones activas · <button id="resetBtn">Reiniciar</button></div>
+    </div>
+  </section>
+
+
+
+  <!-- ===================== VIZ GRID ===================== -->
+  <main class="grid">
+
+    <!-- RadViz -->
+    <section class="panel" id="panel-radviz">
+      <div class="panel-head">
+        <div>
+          <h2>RadViz</h2>
+          <span class="tag">Anclaje dimensional</span>
+        </div>
+        <p class="hint">Cada característica es un ancla en el anillo; los puntos son atraídos hacia las características en las que puntúan alto. Pasa el cursor sobre un ancla para resaltar su atracción.</p>
+      </div>
+      <div class="panel-body canvas-host">
+        <canvas id="rvCanvas"></canvas>
+        <svg id="rvSvg"></svg>
+      </div>
+    </section>
+
+    <!-- Star Coordinates -->
+    <section class="panel" id="panel-star">
+      <div class="panel-head">
+        <div>
+          <h2>Star Coordinates</h2>
+          <span class="tag">Arrastrables · ejes ponderados</span>
+        </div>
+        <p class="hint">Arrastra cualquier eje para reorientar la proyección. Doble clic en un eje para reiniciarlo. Longitud = peso.</p>
+      </div>
+      <div class="panel-body canvas-host">
+        <canvas id="starCanvas"></canvas>
+        <svg id="starSvg"></svg>
+      </div>
+      <div class="panel-foot"><button id="starReset" class="mini">reiniciar ejes</button><button id="starSpin" class="mini">auto-rotar</button></div>
+    </section>
+
+    <!-- Projection -->
+    <section class="panel" id="panel-proj">
+      <div class="panel-head">
+        <div>
+          <h2>Projection</h2>
+          <span class="tag">PCA · UMAP</span>
+        </div>
+        <div class="seg small" id="projMode">
+          <button data-p="pca" class="active">PCA</button>
+          <button data-p="umap">UMAP</button>
+        </div>
+      </div>
+      <div class="panel-body canvas-host">
+        <canvas id="projCanvas"></canvas>
+        <svg id="projSvg"></svg>
+      </div>
+      <div class="panel-foot"><span id="projInfo" class="foot-note"></span><label class="chk"><input type="checkbox" id="biplotChk" checked /> Ejes PCA</label></div>
+    </section>
+
+    <!-- Parallel Coordinates (full width) -->
+    <section class="panel wide" id="panel-pcp">
+      <div class="panel-head">
+        <div>
+          <h2>Parallel Coordinates</h2>
+          <span class="tag">Escalado · selección</span>
+        </div>
+        <p class="hint">Arrastra verticalmente en cualquier eje para seleccionar un rango. Arrastra las etiquetas de los ejes para reordenarlos.</p>
+      </div>
+      <div class="panel-body canvas-host">
+        <canvas id="pcpCanvas"></canvas>
+        <svg id="pcpSvg"></svg>
+      </div>
+    </section>
+
+    <!-- Correlation matrix -->
+    <section class="panel" id="panel-corr">
+      <div class="panel-head">
+        <div>
+          <h2>Correlation</h2>
+          <span class="tag">Matriz de características</span>
+        </div>
+        <p class="hint">r de Pearson entre características de audio. Pasa el cursor sobre una celda para ver el valor.</p>
+      </div>
+      <div class="panel-body"><svg id="corr"></svg></div>
+    </section>
+
+    <!-- Decade ridgeline / distribution -->
+    <section class="panel" id="panel-dist">
+      <div class="panel-head">
+        <div>
+          <h2>Feature by Decade</h2>
+          <span class="tag">Tendencia</span>
+        </div>
+        <div class="seg small" id="distFeature"></div>
+      </div>
+      <div class="panel-body"><svg id="dist"></svg></div>
+    </section>
+
+  </main>
+
+  <!-- detail readout -->
+  <aside id="detail" class="detail hidden">
+    <button id="detailClose">×</button>
+    <h4 id="dName"></h4>
+    <div id="dArtist" class="d-artist"></div>
+    <div id="dCollabBadge" class="d-collab-badge" style="display:none">Colaboración</div>
+    <div id="dMeta" class="d-meta"></div>
+    <svg id="dRadar"></svg>
+  </aside>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <footer class="footer">
+    <span>Construido con D3 v7 · Backend Flask para PCA/UMAP</span>
+    <span id="dataNote"></span>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/radviz.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/star.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/projection.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/parallel.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/correlation.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/distribution.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/boot.js') }}"></script>
+</body>
+</html>
