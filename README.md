@@ -1,4 +1,4 @@
-# Sonic Dimensions
+# Spotify Dimensions
 ### Multidimensional Visualization of Spotify Audio Features (1921–2020)
 
 **DS5343 — Visualización de Datos · UTEC · Graded Activity (Week 8)**
